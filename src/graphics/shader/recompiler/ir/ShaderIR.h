@@ -67,7 +67,14 @@ struct MemoryInfo {
 	bool                    image_r128                                            = false;
 	bool                    idxen                                                 = false;
 	bool                    offen                                                 = false;
+	bool                    coherent                                              = false;
 	bool                    planning_only                                         = false;
+
+	[[nodiscard]] bool SupportsIndirectBufferLoad(ValueOpcode opcode) const {
+		return !formatted && !typed && data_bits == 32u &&
+		       (opcode == ValueOpcode::LoadBufferU32x2 || opcode == ValueOpcode::LoadBufferU32x3 ||
+		        opcode == ValueOpcode::LoadBufferU32x4);
+	}
 
 	bool operator==(const MemoryInfo& other) const = default;
 };
@@ -463,9 +470,9 @@ struct DescriptorSource {
 		uint32_t table_source    = 0;
 		uint32_t selector_stride = 0;
 		uint32_t selector_offset = 0;
-		uint32_t key_arg         = 0;
 		uint32_t table_offset    = 0;
-		uint32_t key_count       = 0;
+		Value    key_count;
+		Value    selector_mask;
 
 		bool operator==(const IndirectImage& other) const = default;
 	};
@@ -541,6 +548,7 @@ struct ResourcePlan {
 	std::vector<SrtRead>                srt_reads;
 	std::vector<uint8_t>                clean_flat_slots;
 	bool                                requires_specialization_memory = false;
+	bool                                has_address_writes = false;
 	bool                                srt_plan_complete          = false;
 	bool                                resource_tracking_complete = false;
 	ShaderInfo                          info;
@@ -553,6 +561,7 @@ struct ResourcePlan {
 	mutable std::vector<uint8_t>            visited_blocks;
 	mutable std::vector<uint32_t>           pending_blocks;
 	mutable std::vector<uint32_t>           material_keys;
+	mutable std::vector<std::pair<uint64_t, uint64_t>> specialization_reads;
 };
 
 struct Program: ResourcePlan {

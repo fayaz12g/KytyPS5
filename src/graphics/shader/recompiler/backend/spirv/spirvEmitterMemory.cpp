@@ -313,7 +313,8 @@ uint32_t LoadWordInBounds(ValueEmitContext& ctx, const MemoryResourceAccess& res
                           uint32_t index) {
 	const auto value   = ctx.state.builder.AllocateId();
 	const auto pointer = EmitMemoryElementPointer(ctx.state, resource, index);
-	ctx.state.builder.AddFunction(spv::OpLoad, TypeU32(ctx.state), value, pointer);
+	ctx.state.builder.AddFunction(spv::OpLoad, TypeU32(ctx.state), value, pointer,
+	                              resource.memory_access);
 	return value;
 }
 
@@ -498,19 +499,19 @@ void StoreSubword(ValueEmitContext& ctx, const IR::Inst& inst, IR::MemoryInfo me
 	});
 }
 
+void StoreWordInBounds(ValueEmitContext& ctx, const MemoryResourceAccess& resource, uint32_t index,
+                       uint32_t data) {
+	ctx.state.builder.AddFunction(spv::OpStore,
+	                              EmitMemoryElementPointer(ctx.state, resource, index), data,
+	                              resource.memory_access);
+}
+
 void StoreWordPrepared(ValueEmitContext& ctx, const IR::Inst& inst, const IR::MemoryInfo& mem,
                        const MemoryResourceAccess& resource, uint32_t data) {
 	const auto index = EmitMemoryElementIndex(ctx.state, resource, DwordIndex(ctx, inst, mem));
 	EmitIfCondition(ctx.state, EmitMemoryElementInBounds(ctx.state, resource, index), [&]() {
-		ctx.state.builder.AddFunction(spv::OpStore,
-		                              EmitMemoryElementPointer(ctx.state, resource, index), data);
+		StoreWordInBounds(ctx, resource, index, data);
 	});
-}
-
-void StoreWordInBounds(ValueEmitContext& ctx, const MemoryResourceAccess& resource, uint32_t index,
-                       uint32_t data) {
-	ctx.state.builder.AddFunction(spv::OpStore,
-	                              EmitMemoryElementPointer(ctx.state, resource, index), data);
 }
 
 void StoreWord(ValueEmitContext& ctx, const IR::Inst& inst, IR::MemoryInfo mem) {
@@ -710,10 +711,14 @@ void StoreFormattedInBounds(ValueEmitContext& ctx, const IR::MemoryInfo& mem,
                             uint32_t data) {
 	if (component >= plan.info.component_count) return;
 	const auto bits = plan.info.component_bits[component];
-	if (plan.info.type == Format::ComponentType::Snorm && bits == 16u) {
+	if (bits == 16u && (plan.info.type == Format::ComponentType::Snorm ||
+	                    plan.info.type == Format::ComponentType::Float)) {
 		const auto value = EmitBitCastF32U32(ctx.state, data);
-		data = EmitPackSnorm2x16(
-		    ctx.state, EmitCompositeConstructF32x2(ctx.state, value, ConstantF32Value(ctx.state, 0.0f)));
+		const auto pair = EmitCompositeConstructF32x2(ctx.state, value,
+		                                               ConstantF32Value(ctx.state, 0.0f));
+		data = plan.info.type == Format::ComponentType::Float
+		           ? EmitPackHalf2x16(ctx.state, pair)
+		           : EmitPackSnorm2x16(ctx.state, pair);
 	}
 	if (bits == 8u || bits == 16u) {
 		StoreSubwordInBounds(ctx, mem, plan.resource, plan.addresses[component],

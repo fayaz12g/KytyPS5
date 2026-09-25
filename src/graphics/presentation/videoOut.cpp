@@ -24,6 +24,8 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <fmt/format.h>
 #include <list>
 #include <thread>
 #include <vector>
@@ -541,6 +543,14 @@ Graphics::ImageInfo BufferAttributeGroup::ImageInfo(const VideoOutBuffer& buffer
 	if (!Graphics::DecodeVideoOutPixelFormat(attribute.pixel_format, pixel_format)) {
 		EXIT("unsupported video-out pixel format: 0x%016" PRIx64 "\n", attribute.pixel_format);
 	}
+	if (attribute.pixel_format == Graphics::VIDEO_OUT_PIXEL_FORMAT_R10_G10_B10_A2_BT2100_PQ) {
+		static std::atomic_flag warned = ATOMIC_FLAG_INIT;
+		if (!warned.test_and_set(std::memory_order_relaxed)) {
+			Log::WriteToConsoleAndLog(fmt::format(
+			    "Warning: HDR-to-SDR conversion is not implemented; displaying PQ video-out "
+			    "pixels unchanged (format=0x{:016x}).\n", attribute.pixel_format));
+		}
+	}
 	const auto tile_mode = Graphics::Prospero::TileMode::kRenderTarget;
 	const auto pitch =
 	    Graphics::TileGetTexturePitch(pixel_format.guest_format, attribute.width, tile_mode);
@@ -565,7 +575,12 @@ Graphics::ImageInfo BufferAttributeGroup::ImageInfo(const VideoOutBuffer& buffer
 	info.bgra16          = pixel_format.bgra16;
 	info.mip_layout[0]   = {0, total.size, pitch, attribute.height};
 	if (compression != Graphics::VideoOutCompression::Uncompressed) {
-		info.metadata.range       = {buffer.metadata_address, 0};
+		Graphics::TileSizeAlign dcc_size {};
+		if (!Graphics::TileGetDccSize(attribute.width, attribute.height, 1,
+		                              pixel_format.bytes_per_element, 1, tile_mode, dcc_size)) {
+			EXIT("invalid video-out DCC footprint\n");
+		}
+		info.metadata.range       = {buffer.metadata_address, dcc_size.size};
 		info.metadata.kind        = Graphics::ImageMetadataKind::Dcc;
 		info.metadata.control     = attribute.dcc_control;
 		info.metadata.compression = compression;
@@ -1541,7 +1556,9 @@ KYTY_SYSV_ABI int VideoOutIsFlipPending(int handle) {
 	VideoOutFlipStatus status {};
 	DriverState().GetFlipQueue().GetFlipStatus(*ctx, status);
 
-	LOGF("\t flipPendingNum = %d\n", status.flipPendingNum);
+	if (Config::GraphicsDebugDumpEnabled()) {
+		LOGF("\t flipPendingNum = %d\n", status.flipPendingNum);
+	}
 
 	return status.flipPendingNum;
 }
@@ -1672,21 +1689,6 @@ KYTY_SYSV_ABI int VideoOutGetOutputStatus(int handle, VideoOutOutputStatus* stat
 	status->reserved[2] = 0;
 	ctx->mutex.Unlock();
 
-	return OK;
-}
-
-KYTY_SYSV_ABI int VideoOutGetVrrStatus(int handle, int32_t* status) {
-	PRINT_NAME();
-
-	if (status == nullptr) {
-		return VIDEO_OUT_ERROR_INVALID_ADDRESS;
-	}
-	if (DriverState().Get(handle) == nullptr) {
-		return VIDEO_OUT_ERROR_INVALID_HANDLE;
-	}
-
-	// Kyty currently presents at a fixed refresh rate and does not negotiate VRR.
-	*status = 0;
 	return OK;
 }
 

@@ -2,9 +2,10 @@
 #define KYTY_COMMON_EMULATOR_CONFIG_H_
 
 #include "common/common.h"
+#include "common/display.h"
 
-#include <cstddef>
 #include <array>
+#include <cstddef>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -81,6 +82,7 @@ struct ConfigOptions {
 	bool                   trophy_enabled              = true;
 	bool                   playgo_hack_enabled         = false;
 	bool                   skip_notice_screen          = false;
+	AspectRatio            aspect_ratio               = AspectRatio::R16X9;
 #if KYTY_PLATFORM == KYTY_PLATFORM_WINDOWS
 	bool red_zone_protection_enabled = false;
 #endif
@@ -137,6 +139,8 @@ bool TessellationEnabled();
 bool TrophyEnabled();
 bool PlayGoHackEnabled();
 bool SkipNoticeScreen();
+
+AspectRatio GetAspectRatio();
 #if KYTY_PLATFORM == KYTY_PLATFORM_WINDOWS
 bool RedZoneProtectionEnabled();
 #endif

@@ -11,9 +11,12 @@
 #include <QMetaType>
 #include <QObject>
 #include <QSettings>
+#include <QSize>
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+
+class QScreen;
 
 template <class T>
 inline QStringList EnumToList() {
@@ -80,6 +83,7 @@ public:
 		R1920X1080,
 		R2560X1440,
 		R3840X2160,
+		Auto,
 	};
 	Q_ENUM(Resolution)
 
@@ -88,6 +92,17 @@ public:
 
 	enum class PresentMode { Fifo, Mailbox, Immediate };
 	Q_ENUM(PresentMode)
+
+	enum class AspectRatio {
+		Stretch = static_cast<int>(Config::AspectRatio::Stretch),
+		R16X9   = static_cast<int>(Config::AspectRatio::R16X9),
+		R21X9   = static_cast<int>(Config::AspectRatio::R21X9),
+		R32X9   = static_cast<int>(Config::AspectRatio::R32X9),
+		R16X10  = static_cast<int>(Config::AspectRatio::R16X10),
+		R4X3    = static_cast<int>(Config::AspectRatio::R4X3),
+		Auto    = static_cast<int>(Config::AspectRatio::Auto),
+	};
+	Q_ENUM(AspectRatio)
 
 	enum class LogDirection { Silent, Console, File };
 	Q_ENUM(LogDirection)
@@ -110,11 +125,12 @@ public:
 	// Controller preferences always come from the global configuration.
 	ControllerSettings controller;
 
-	Resolution             screen_resolution           = Resolution::R1280X720;
+	Resolution             screen_resolution           = Resolution::Auto;
 	QString                user_name                   = "Kyty";
 	int                    user_id                     = Config::DEFAULT_USER_ID;
 	QString                audio_input_device;
 	PresentMode            present_mode                = PresentMode::Mailbox;
+	AspectRatio            aspect_ratio                = AspectRatio::Auto;
 	int                    gpu_index                   = -1;
 	bool                   fullscreen_enabled          = false;
 	bool                   hdr_enabled                 = false;
@@ -152,6 +168,7 @@ public:
 		user_id                     = other.user_id;
 		audio_input_device          = other.audio_input_device;
 		present_mode                = other.present_mode;
+		aspect_ratio                = other.aspect_ratio;
 		gpu_index                   = other.gpu_index;
 		fullscreen_enabled          = other.fullscreen_enabled;
 		hdr_enabled                 = other.hdr_enabled;
@@ -196,6 +213,9 @@ public:
 
 	void WriteSettings(QSettings* s) const;
 	void ReadSettings(QSettings* s);
+	static QSize              NativeDisplaySize(QScreen* screen = nullptr);
+	[[nodiscard]] QSize       ScreenSize(QSize display) const;
+	[[nodiscard]] QStringList DisplayArgs(QSize display) const;
 
 	[[nodiscard]] QVariantMap GameSettings() const;
 	// Call on a temporary configuration: validation can fail after loading values.

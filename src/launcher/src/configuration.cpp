@@ -1,5 +1,51 @@
 #include "configuration.h"
 
+#include <QGuiApplication>
+#include <QScreen>
+
+QSize Configuration::NativeDisplaySize(QScreen* screen) {
+	if (screen == nullptr) {
+		screen = QGuiApplication::primaryScreen();
+	}
+	return screen != nullptr ? screen->geometry().size() : QSize(1280, 720);
+}
+
+QSize Configuration::ScreenSize(QSize display) const {
+	if (display.width() <= 0 || display.height() <= 0) {
+		display = QSize(1280, 720);
+	}
+	if (screen_resolution == Resolution::Auto) {
+		return display;
+	}
+	uint32_t height = 720;
+	switch (screen_resolution) {
+		case Resolution::R1920X1080: height = 1080; break;
+		case Resolution::R2560X1440: height = 1440; break;
+		case Resolution::R3840X2160: height = 2160; break;
+		default: break;
+	}
+	const auto aspect = static_cast<Config::AspectRatio>(aspect_ratio);
+	const auto size   = Config::AspectSize(
+	    aspect, height,
+	    {static_cast<uint32_t>(display.width()), static_cast<uint32_t>(display.height())});
+	return QSize(static_cast<int>(size.width), static_cast<int>(size.height));
+}
+
+QStringList Configuration::DisplayArgs(QSize display) const {
+	const auto size = ScreenSize(display);
+	return {"--screen-width",  QString::number(size.width()),
+	        "--screen-height", QString::number(size.height()),
+	        "--aspect-ratio",  EnumToText(aspect_ratio)};
+}
+
+template <class Enum, class Settings>
+static Enum ReadDisplayEnum(const Settings& settings, const char* key, Enum fallback) {
+	const auto text  = settings.value(key, QVariant::fromValue(fallback)).toString().toUtf8();
+	bool       valid = false;
+	const auto value = QMetaEnum::fromType<Enum>().keyToValue(text.constData(), &valid);
+	return valid ? static_cast<Enum>(value) : fallback;
+}
+
 QVariantMap Configuration::GameSettings() const {
 	QVariantMap values;
 #define KYTY_CFG_SET(n) values.insert(QStringLiteral(#n), QVariant::fromValue(n).toString())
@@ -27,6 +73,7 @@ QVariantMap Configuration::GameSettings() const {
 	KYTY_CFG_SET(shader_log_folder);
 	KYTY_CFG_SET(command_buffer_dump_enabled);
 	KYTY_CFG_SET(command_buffer_dump_folder);
+	KYTY_CFG_SET(aspect_ratio);
 	KYTY_CFG_SET(printf_direction);
 	KYTY_CFG_SET(printf_output_file);
 	KYTY_CFG_SET(profiler_enabled);
@@ -43,7 +90,7 @@ QVariantMap Configuration::GameSettings() const {
 template <class Settings>
 void Configuration::ReadGameSettingsValues(const Settings& s) {
 #define KYTY_CFG_GET(n) n = s.value(QStringLiteral(#n)).template value<decltype(n)>()
-	KYTY_CFG_GET(screen_resolution);
+	screen_resolution     = ReadDisplayEnum(s, "screen_resolution", Resolution::Auto);
 	user_name          = s.value("user_name", user_name).toString();
 	bool user_id_ok    = false;
 	auto saved_user_id = s.value("user_id", user_id).toInt(&user_id_ok);
@@ -77,6 +124,7 @@ void Configuration::ReadGameSettingsValues(const Settings& s) {
 	KYTY_CFG_GET(shader_log_folder);
 	KYTY_CFG_GET(command_buffer_dump_enabled);
 	KYTY_CFG_GET(command_buffer_dump_folder);
+	aspect_ratio = ReadDisplayEnum(s, "aspect_ratio", AspectRatio::Auto);
 	KYTY_CFG_GET(printf_direction);
 	KYTY_CFG_GET(printf_output_file);
 	KYTY_CFG_GET(profiler_enabled);

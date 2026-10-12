@@ -46,6 +46,7 @@ private:
 
 protected:
 	void Init(const Configuration& info);
+	void UpdateResolutions();
 	void InitGameDirectories();
 	void AddGameDirectoryItem(const QString& dir);
 

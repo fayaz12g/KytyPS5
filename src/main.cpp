@@ -84,6 +84,8 @@ static void PrintUsage() {
 	::printf("  --printf-direction <value>           Silent, Console, or File.\n");
 	::printf("  --printf-output-file <path>          Guest printf output file.\n");
 	::printf("  --profile                            Enable the Tracy profiler.\n");
+	::printf("  --aspect-ratio <value>               Auto, Stretch, 16:9, 21:9, 32:9, 16:10, or "
+	         "4:3. Default: 16:9.\n");
 	::printf("  --spirv-debug-printf <true|false>    Enable SPIR-V debug printf.\n");
 	::printf(
 	    "  --readback-linear-images <true|false> Read back writable linear images on submit.\n");
@@ -136,6 +138,20 @@ static bool ParseEnum(const std::string& value, E& out) {
 	}
 
 	out = enum_value.value();
+	return true;
+}
+
+static bool ParseAspectRatio(std::string value, Config::AspectRatio& out) {
+	std::replace(value.begin(), value.end(), ':', 'x');
+	if (!value.empty() && std::isdigit(static_cast<unsigned char>(value.front()))) {
+		value.insert(value.begin(), 'R');
+	}
+	const auto aspect =
+	    magic_enum::enum_cast<Config::AspectRatio>(value, magic_enum::case_insensitive);
+	if (!aspect.has_value()) {
+		return false;
+	}
+	out = *aspect;
 	return true;
 }
 
@@ -372,6 +388,11 @@ static bool ParseArgs(int argc, char* argv[], RunOptions& options, bool& show_he
 		} else if (arg == "--present-mode") {
 			if (!ParseEnum(value, options.config.present_mode)) {
 				::printf("invalid present mode: %s\n", value.c_str());
+				return false;
+			}
+		} else if (arg == "--aspect-ratio") {
+			if (!ParseAspectRatio(value, options.config.aspect_ratio)) {
+				::printf("invalid aspect ratio: %s\n", value.c_str());
 				return false;
 			}
 		} else if (arg == "--gpu") {

@@ -218,16 +218,8 @@ static QString BoolArg(bool value) {
 	return value ? QStringLiteral("true") : QStringLiteral("false");
 }
 
-static QStringList CreateEmulatorArgs(const Configuration& info) {
-	QStringList args;
-	auto        r = EnumToText(info.screen_resolution).split('x');
-
-	if (r.size() != 2) {
-		return {};
-	}
-
-	args << "--screen-width" << r.at(0);
-	args << "--screen-height" << r.at(1);
+static QStringList CreateEmulatorArgs(const Configuration& info, QSize display) {
+	auto args = info.DisplayArgs(display);
 	args << "--user-name" << info.user_name;
 	args << "--user-id" << QString::number(info.user_id);
 	if (!info.audio_input_device.isEmpty()) {
@@ -415,7 +407,7 @@ void MainDialog::RunInterpreter(QProcess* process, const Configuration& info) {
 	QFileInfo f(interpreter);
 	auto      dir = f.absoluteDir();
 
-	auto args = CreateEmulatorArgs(info);
+	auto args = CreateEmulatorArgs(info, Configuration::NativeDisplaySize(screen()));
 	if (args.isEmpty()) {
 		QMessageBox::critical(this, tr("Error"), tr("Invalid emulator configuration"));
 		QApplication::quit();

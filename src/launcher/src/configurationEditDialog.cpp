@@ -3,7 +3,6 @@
 #include "common/emulatorConfig.h"
 #include "configuration.h"
 #include "mandatoryLineEdit.h"
-#include <SDL3/SDL.h>
 
 #include <QAbstractItemView>
 #include <QCheckBox>
@@ -24,6 +23,7 @@
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QSlider>
 #include <QSpinBox>
 #include <QStyle>
@@ -31,6 +31,8 @@
 #include <QTreeView>
 #include <QVBoxLayout>
 #include <QtAlgorithms>
+
+#include <SDL3/SDL.h>
 
 #if QT_CONFIG(vulkan)
 #include <QVulkanInstance>
@@ -132,6 +134,8 @@ ConfigurationEditDialog::ConfigurationEditDialog(Configuration& info, QWidget* p
 	connect(m_ui->ok_button, &QPushButton::clicked, this, &ConfigurationEditDialog::save);
 	connect(m_ui->cancel_button, &QPushButton::clicked, this, &QDialog::reject);
 	connect(m_ui->clear_button, &QPushButton::clicked, this, &ConfigurationEditDialog::clear);
+	connect(m_ui->comboBox_aspect_ratio, &QComboBox::currentTextChanged, this,
+	        [this]() { UpdateResolutions(); });
 	connect(m_ui->button_controller_color, &QPushButton::clicked, this, [this]() {
 		const auto current = m_ui->button_controller_color->property("controllerColor").toString();
 		const auto initial =
@@ -238,7 +242,13 @@ void ConfigurationEditDialog::Init(const Configuration& info) {
 		                    info.audio_input_device);
 	}
 	microphone->setCurrentIndex(microphone->findData(info.audio_input_device));
-	ListInit(m_ui->comboBox_screen_resolution, info.screen_resolution);
+	{
+		const QSignalBlocker block(m_ui->comboBox_aspect_ratio);
+		ListInit(m_ui->comboBox_aspect_ratio, info.aspect_ratio);
+	}
+	UpdateResolutions();
+	m_ui->comboBox_screen_resolution->setCurrentIndex(
+	    m_ui->comboBox_screen_resolution->findData(static_cast<int>(info.screen_resolution)));
 	ListInit(m_ui->comboBox_present_mode, info.present_mode);
 	m_ui->comboBox_gpu->clear();
 	m_ui->comboBox_gpu->addItem(tr("Auto"));
@@ -313,6 +323,29 @@ void ConfigurationEditDialog::Init(const Configuration& info) {
 	m_ui->lineEdit_printf_file->setEnabled(info.printf_direction ==
 	                                       Configuration::LogDirection::File);
 	m_ui->checkBox_profiler->setChecked(info.profiler_enabled);
+}
+
+void ConfigurationEditDialog::UpdateResolutions() {
+	auto*      combo   = m_ui->comboBox_screen_resolution;
+	const auto current = combo->currentData();
+	combo->clear();
+	Configuration selection;
+	selection.aspect_ratio =
+	    TextToEnum<Configuration::AspectRatio>(m_ui->comboBox_aspect_ratio->currentText());
+	const auto native = Configuration::NativeDisplaySize(screen());
+	for (auto resolution:
+	     {Configuration::Resolution::Auto, Configuration::Resolution::R1280X720,
+	      Configuration::Resolution::R1920X1080, Configuration::Resolution::R2560X1440,
+	      Configuration::Resolution::R3840X2160}) {
+		selection.screen_resolution = resolution;
+		const auto size             = selection.ScreenSize(native);
+		const auto text             = QStringLiteral("%1x%2").arg(size.width()).arg(size.height());
+		combo->addItem(resolution == Configuration::Resolution::Auto ? tr("Auto (%1)").arg(text)
+		                                                             : text,
+		               static_cast<int>(resolution));
+	}
+	const int index = combo->findData(current);
+	combo->setCurrentIndex(index >= 0 ? index : 0);
 }
 
 void ConfigurationEditDialog::InitGameDirectories() {
@@ -430,10 +463,12 @@ static void UpdateInfo(Configuration& info, Ui::ConfigurationEditDialog& ui, boo
 		info.controller.vibration_intensity = ui.slider_controller_vibration->value();
 		info.controller.speaker_volume      = ui.slider_controller_volume->value();
 	}
-	info.screen_resolution =
-	    TextToEnum<Configuration::Resolution>(ui.comboBox_screen_resolution->currentText());
+	info.screen_resolution = static_cast<Configuration::Resolution>(
+	    ui.comboBox_screen_resolution->currentData().toInt());
 	info.present_mode =
 	    TextToEnum<Configuration::PresentMode>(ui.comboBox_present_mode->currentText());
+	info.aspect_ratio =
+		TextToEnum<Configuration::AspectRatio>(ui.comboBox_aspect_ratio->currentText());
 	info.gpu_index                 = ui.comboBox_gpu->currentIndex() - 1;
 	info.fullscreen_enabled        = ui.checkBox_fullscreen->isChecked();
 	info.hdr_enabled               = ui.checkBox_hdr->isChecked();

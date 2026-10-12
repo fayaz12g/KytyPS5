@@ -43,6 +43,24 @@ Community game test results are available in the
 Compatibility, stability, and performance can vary between versions. You may encounter crashes
 or graphical glitches, so please include the version you tested when reporting an issue.
 
+### Window-responsive aspect ratio
+
+The experimental **Window-responsive aspect ratio** checkbox in Graphics & display
+(CLI: `--window-aspect`) adjusts game projection to the drawable window size, including
+resizing and fullscreen changes. It is disabled by default and currently supports only
+ASTRO BOT `PPSA21564` version `01.007.000` and ASTRO's PLAYROOM `PPSA01325` version
+`01.905.000`.
+
+The loader locates and validates the supplied instruction and padding signatures rather
+than treating patch offsets as host addresses. Unsupported versions or non-unique matches
+remain unmodified. Explicit `--game-patch` files can be used alongside this option.
+Window size takes precedence: enabled JSON memory entries overlapping the aspect-ratio
+instruction or its data are skipped and logged; unrelated entries remain enabled, even
+within the same mod. Disabling the option restores normal JSON patch behavior.
+The float is updated live, but visible changes
+depend on when the game rebuilds its projection; HUD and cutscene behavior may differ.
+This is not a universal shared-engine detector.
+
 ## Screenshots
 
 <table align="center">

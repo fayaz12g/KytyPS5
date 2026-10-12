@@ -395,6 +395,10 @@ endfunction()
 
 add_kyty_full_emulator_test(shader_cfg_tests "${KYTY_TESTS_DIR}/shaderCfgTests.cpp")
 
+add_executable(game_aspect_ratio_tests EXCLUDE_FROM_ALL
+	"${KYTY_TESTS_DIR}/GameAspectRatioTests.cpp")
+target_include_directories(game_aspect_ratio_tests PRIVATE "${KYTY_SOURCE_DIR}")
+
 add_executable(scalar_provenance_tests EXCLUDE_FROM_ALL
 	"${KYTY_TESTS_DIR}/ScalarProvenanceTests.cpp"
 	"${KYTY_SOURCE_DIR}/graphics/guest_gpu/gpu_format.cpp"
@@ -603,6 +607,11 @@ if(NOT KYTY_CLANG_CL)
 endif()
 
 if(BUILD_TESTING)
+	add_test(NAME game_aspect_ratio COMMAND $<TARGET_FILE:game_aspect_ratio_tests>)
+	add_test(NAME emulator_window_aspect_cli
+		COMMAND $<TARGET_FILE:kyty_emulator> --window-aspect --help)
+	set_tests_properties(emulator_window_aspect_cli PROPERTIES
+		PASS_REGULAR_EXPRESSION "Window-responsive projection")
 	add_test(NAME emulator_user_name_cli
 	         COMMAND $<TARGET_FILE:kyty_emulator> --help --user-name 1234567890123456)
 	add_test(NAME emulator_user_name_too_long

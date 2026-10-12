@@ -1112,6 +1112,7 @@ void RuntimeLinker::UnloadProgram(Program* program) {
 
 	auto it = std::find(m_programs.begin(), m_programs.end(), program);
 	EXIT_IF(it == m_programs.end());
+	GamePatch::ReleaseWindowAspect(program);
 	m_programs.erase(it);
 
 	for (auto* importer: m_programs) {
@@ -1267,6 +1268,8 @@ void RuntimeLinker::Execute(const std::filesystem::path& game_patch) {
 			EXIT("Failed to apply game cheat\n");
 		}
 	}
+	GamePatch::InitializeWindowAspect(m_programs.empty() ? nullptr : m_programs.front(),
+	                                 m_programs);
 	if (libc != nullptr && libc->dynamic_info->init_vaddr != 0) {
 		StartModule(libc, 0, nullptr, nullptr);
 	}

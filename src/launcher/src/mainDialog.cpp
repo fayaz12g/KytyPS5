@@ -245,6 +245,9 @@ static QStringList CreateEmulatorArgs(const Configuration& info) {
 	if (info.fullscreen_enabled) {
 		args << "--fullscreen";
 	}
+	if (info.window_aspect_enabled) {
+		args << "--window-aspect";
+	}
 	if (info.hdr_enabled) {
 		args << "--hdr";
 	}

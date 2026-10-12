@@ -22,6 +22,7 @@
 #include "graphics/presentation/window/windowInternal.h"
 #include "kytyGitVersion.h"
 #include "libs/controller.h"
+#include "loader/gamePatch.h"
 #include "loader/systemContent.h"
 
 #include <cstdlib>
@@ -382,6 +383,7 @@ void WindowContext::Resize(int new_width, int new_height) {
 	Common::LockGuard lock(mutex);
 	graphic_ctx.screen_width  = static_cast<uint32_t>(new_width);
 	graphic_ctx.screen_height = static_cast<uint32_t>(new_height);
+	Loader::GamePatch::UpdateWindowAspect(graphic_ctx.screen_width, graphic_ctx.screen_height);
 }
 
 void WindowContext::ProcessWindowEvent(const SDL_WindowEvent& event) {
@@ -820,6 +822,9 @@ static void WindowCreate(WindowContext& context) {
 		EXIT("%s\n", SDL_GetError());
 	}
 
+	if (SDL_GetWindowSizeInPixels(context.window, &width, &height)) {
+		context.Resize(width, height);
+	}
 	SDL_SetWindowPosition(context.window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	HostInputInit(context.window);
 	InitializeSystemOverlayInput(context.window);

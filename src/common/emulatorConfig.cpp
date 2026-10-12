@@ -168,6 +168,10 @@ bool TessellationEnabled() {
 	return g_config->tessellation_enabled;
 }
 
+bool WindowAspectEnabled() {
+	return g_config->window_aspect_enabled;
+}
+
 bool TrophyEnabled() {
 	return g_config->trophy_enabled;
 }

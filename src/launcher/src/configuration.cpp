@@ -10,6 +10,7 @@ QVariantMap Configuration::GameSettings() const {
 	KYTY_CFG_SET(present_mode);
 	KYTY_CFG_SET(gpu_index);
 	KYTY_CFG_SET(fullscreen_enabled);
+	KYTY_CFG_SET(window_aspect_enabled);
 	KYTY_CFG_SET(hdr_enabled);
 	KYTY_CFG_SET(hide_cursor_enabled);
 	KYTY_CFG_SET(readback_linear_images);
@@ -57,6 +58,7 @@ void Configuration::ReadGameSettingsValues(const Settings& s) {
 		present_mode = PresentMode::Mailbox;
 	}
 	KYTY_CFG_GET(fullscreen_enabled);
+	window_aspect_enabled = s.value("window_aspect_enabled", false).toBool();
 	KYTY_CFG_GET(hdr_enabled);
 	KYTY_CFG_GET(hide_cursor_enabled);
 	KYTY_CFG_GET(readback_linear_images);

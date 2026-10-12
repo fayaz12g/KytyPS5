@@ -186,6 +186,12 @@
               <property name="text"><string>Enable HDR display support</string></property>
              </widget>
             </item>
+            <item row="9" column="1">
+             <widget class="QCheckBox" name="checkBox_window_aspect">
+              <property name="toolTip"><string>Experimental projection patch for ASTRO BOT 01.007.000 (PPSA21564) and ASTRO's PLAYROOM 01.905.000 (PPSA01325). Window size overrides overlapping aspect-ratio patch writes; unrelated fixes are preserved.</string></property>
+              <property name="text"><string>Window-responsive aspect ratio (experimental)</string></property>
+             </widget>
+            </item>
            </layout>
           </widget>
          </item>

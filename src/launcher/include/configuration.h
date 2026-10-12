@@ -117,6 +117,7 @@ public:
 	PresentMode            present_mode                = PresentMode::Mailbox;
 	int                    gpu_index                   = -1;
 	bool                   fullscreen_enabled          = false;
+	bool                   window_aspect_enabled       = false;
 	bool                   hdr_enabled                 = false;
 	bool                   hide_cursor_enabled         = false;
 	bool                   readback_linear_images      = false;
@@ -154,6 +155,7 @@ public:
 		present_mode                = other.present_mode;
 		gpu_index                   = other.gpu_index;
 		fullscreen_enabled          = other.fullscreen_enabled;
+		window_aspect_enabled       = other.window_aspect_enabled;
 		hdr_enabled                 = other.hdr_enabled;
 		hide_cursor_enabled         = other.hide_cursor_enabled;
 		readback_linear_images      = other.readback_linear_images;

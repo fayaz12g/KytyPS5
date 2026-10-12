@@ -46,6 +46,7 @@ static void PrintUsage() {
 	::printf("Options:\n");
 	::printf("  --game <dir|elf|zar>                 Game directory, ELF, or ZArchive to load.\n");
 	::printf("  --game-patch <json>                  ETAHen cheat file.\n");
+	::printf("  --window-aspect                      Window-responsive projection in supported games.\n");
 	::printf("  --screen-width <num>                 Window width. Default: 1280.\n");
 	::printf("  --screen-height <num>                Window height. Default: 720.\n");
 	::printf(
@@ -214,6 +215,11 @@ static bool ParseArgs(int argc, char* argv[], RunOptions& options, bool& show_he
 
 		if (arg == "--fullscreen") {
 			options.config.fullscreen_enabled = true;
+			continue;
+		}
+
+		if (arg == "--window-aspect") {
+			options.config.window_aspect_enabled = true;
 			continue;
 		}
 

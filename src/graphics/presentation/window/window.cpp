@@ -814,13 +814,34 @@ static void WindowCreate(WindowContext& context) {
 		window_flags |= static_cast<uint32_t>(SDL_WINDOW_BORDERLESS);
 	}
 #endif
-	context.window = SDL_CreateWindow(KYTY_SDL_WINDOW_CAPTION, width, height, window_flags);
+	auto display_id = SDL_GetPrimaryDisplay();
+	if (const auto& display = Config::GetHostDisplay(); display.has_value()) {
+		const SDL_Point center {display->x + static_cast<int32_t>(display->size.width / 2),
+		                        display->y + static_cast<int32_t>(display->size.height / 2)};
+		if (const auto target = SDL_GetDisplayForPoint(&center); target != 0) {
+			display_id = target;
+		}
+	}
+	const auto properties = SDL_CreateProperties();
+	if (properties == 0 ||
+	    !SDL_SetStringProperty(properties, SDL_PROP_WINDOW_CREATE_TITLE_STRING,
+	                           KYTY_SDL_WINDOW_CAPTION) ||
+	    !SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, width) ||
+	    !SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, height) ||
+	    !SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_FLAGS_NUMBER, window_flags) ||
+	    !SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_X_NUMBER,
+	                           SDL_WINDOWPOS_CENTERED_DISPLAY(display_id)) ||
+	    !SDL_SetNumberProperty(properties, SDL_PROP_WINDOW_CREATE_Y_NUMBER,
+	                           SDL_WINDOWPOS_CENTERED_DISPLAY(display_id))) {
+		EXIT("%s\n", SDL_GetError());
+	}
+	context.window = SDL_CreateWindowWithProperties(properties);
+	SDL_DestroyProperties(properties);
 
 	if (context.window == nullptr) {
 		EXIT("%s\n", SDL_GetError());
 	}
 
-	SDL_SetWindowPosition(context.window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	HostInputInit(context.window);
 	InitializeSystemOverlayInput(context.window);
 	context.UpdateIcon();

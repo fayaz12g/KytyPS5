@@ -124,7 +124,11 @@ void Configuration::ReadGameSettingsValues(const Settings& s) {
 	KYTY_CFG_GET(shader_log_folder);
 	KYTY_CFG_GET(command_buffer_dump_enabled);
 	KYTY_CFG_GET(command_buffer_dump_folder);
-	aspect_ratio = ReadDisplayEnum(s, "aspect_ratio", AspectRatio::Auto);
+	const auto default_aspect =
+	    s.value("screen_resolution").isValid() && screen_resolution != Resolution::Auto
+	        ? AspectRatio::Stretch
+	        : AspectRatio::Auto;
+	aspect_ratio = ReadDisplayEnum(s, "aspect_ratio", default_aspect);
 	KYTY_CFG_GET(printf_direction);
 	KYTY_CFG_GET(printf_output_file);
 	KYTY_CFG_GET(profiler_enabled);

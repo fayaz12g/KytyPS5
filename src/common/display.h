@@ -13,6 +13,12 @@ struct DisplaySize {
 	uint32_t height;
 };
 
+struct HostDisplay {
+	int32_t     x;
+	int32_t     y;
+	DisplaySize size;
+};
+
 struct DisplayRect {
 	uint32_t x;
 	uint32_t y;
@@ -20,8 +26,7 @@ struct DisplayRect {
 	uint32_t height;
 };
 
-inline DisplaySize AspectSize(AspectRatio aspect, uint32_t height,
-                              DisplaySize display = {1280, 720}) {
+inline DisplaySize AspectReference(AspectRatio aspect, DisplaySize display = {1280, 720}) {
 	uint32_t numerator   = 16;
 	uint32_t denominator = 9;
 	switch (aspect) {
@@ -32,14 +37,14 @@ inline DisplaySize AspectSize(AspectRatio aspect, uint32_t height,
 			}
 			break;
 		case AspectRatio::R21X9:
-			if (height == 1440) {
-				return {3440, height};
-			}
-			if (height == 1080 || height == 2160) {
-				numerator   = 64;
-				denominator = 27;
+			if (display.height != 0 &&
+			    uint64_t {display.width} * 10 >= uint64_t {display.height} * 23 &&
+			    uint64_t {display.width} * 2 <= uint64_t {display.height} * 5) {
+				numerator   = display.width;
+				denominator = display.height;
 			} else {
-				numerator = 21;
+				numerator   = 43;
+				denominator = 18;
 			}
 			break;
 		case AspectRatio::R32X9: numerator = 32; break;
@@ -50,7 +55,14 @@ inline DisplaySize AspectSize(AspectRatio aspect, uint32_t height,
 			break;
 		default: break;
 	}
-	return {static_cast<uint32_t>((uint64_t {height} * numerator + denominator / 2) / denominator),
+	return {numerator, denominator};
+}
+
+inline DisplaySize AspectSize(AspectRatio aspect, uint32_t height,
+                              DisplaySize display = {1280, 720}) {
+	const auto reference = AspectReference(aspect, display);
+	return {static_cast<uint32_t>((uint64_t {height} * reference.width + reference.height / 2) /
+	                              reference.height),
 	        height};
 }
 
@@ -62,7 +74,7 @@ inline DisplayRect PresentationRect(AspectRatio aspect, DisplaySize surface,
 	if (aspect == AspectRatio::Stretch) {
 		return {0, 0, surface.width, surface.height};
 	}
-	const auto target = AspectSize(aspect, configured.height, configured);
+	const auto target = AspectReference(aspect, configured);
 	if (target.width == 0 || target.height == 0) {
 		return {0, 0, surface.width, surface.height};
 	}

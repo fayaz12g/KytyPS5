@@ -774,9 +774,12 @@ void Swapchain::RecordPresentCommands(CommandBuffer& command, Presenter::Frame* 
 	auto       vk_command      = command.Handle();
 	const bool draw_overlay    = overlay.frame != nullptr;
 	const bool draw_attachment = draw_overlay || draw_system_overlay;
-	const auto content =
-	    Config::PresentationRect(Config::GetAspectRatio(), {m_extent.width, m_extent.height},
-		                         {Config::GetScreenWidth(), Config::GetScreenHeight()});
+	const auto& display         = Config::GetHostDisplay();
+	const auto  reference = display.has_value() ? display->size
+	                                            : Config::DisplaySize {Config::GetScreenWidth(),
+	                                                                   Config::GetScreenHeight()};
+	const auto  content   = Config::PresentationRect(Config::GetAspectRatio(),
+	                                                 {m_extent.width, m_extent.height}, reference);
 	if (source != nullptr) {
 		source->Transit(vk_command, vk::ImageLayout::eTransferSrcOptimal,
 		                vk::AccessFlagBits2::eTransferRead);

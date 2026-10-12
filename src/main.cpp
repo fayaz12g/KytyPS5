@@ -9,13 +9,16 @@
 #include "emulator.h"
 #include "kytyGitVersion.h"
 
+#include <algorithm>
+#include <cctype>
 #include <charconv>
 #include <cstdio>
 #include <filesystem>
+#include <fmt/format.h>
+#include <limits>
+#include <magic_enum.hpp>
 #include <string_view>
 #include <vector>
-#include <fmt/format.h>
-#include <magic_enum.hpp>
 
 using namespace Common;
 using namespace Emulator;
@@ -48,6 +51,8 @@ static void PrintUsage() {
 	::printf("  --game-patch <json>                  ETAHen cheat file.\n");
 	::printf("  --screen-width <num>                 Window width. Default: 1280.\n");
 	::printf("  --screen-height <num>                Window height. Default: 720.\n");
+	::printf(
+	    "  --display <x> <y> <width> <height>    Host monitor bounds in desktop coordinates.\n");
 	::printf(
 	    "  --user-name <name>                   Local user name (1-16 bytes). Default: Kyty.\n");
 	::printf("  --user-id <num>                      Local user ID. Default: %d.\n",
@@ -352,6 +357,23 @@ static bool ParseArgs(int argc, char* argv[], RunOptions& options, bool& show_he
 				::printf("invalid screen height: %s\n", value.c_str());
 				return false;
 			}
+		} else if (arg == "--display") {
+			Config::HostDisplay display {};
+			if (!ParseInt32(value, display.x) || !NextArg(argc, argv, i, value) ||
+			    !ParseInt32(value, display.y) || !NextArg(argc, argv, i, value) ||
+			    !ParseUint32(value, display.size.width) || display.size.width == 0 ||
+			    display.size.width > static_cast<uint32_t>(std::numeric_limits<int32_t>::max()) ||
+			    !NextArg(argc, argv, i, value) || !ParseUint32(value, display.size.height) ||
+			    display.size.height == 0 ||
+			    display.size.height > static_cast<uint32_t>(std::numeric_limits<int32_t>::max()) ||
+			    int64_t {display.x} + display.size.width / 2 >
+			        std::numeric_limits<int32_t>::max() ||
+			    int64_t {display.y} + display.size.height / 2 >
+			        std::numeric_limits<int32_t>::max()) {
+				::printf("invalid display bounds: expected x y positive-width positive-height\n");
+				return false;
+			}
+			options.config.host_display = display;
 		} else if (arg == "--user-name") {
 			if (value.empty() || value.size() > Config::MAX_USER_NAME_LENGTH) {
 				::printf("invalid user name: must contain 1-%zu bytes\n",

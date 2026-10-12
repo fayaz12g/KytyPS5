@@ -22,7 +22,9 @@
 #include <QPointer>
 #include <QProcess>
 #include <QRadioButton>
+#include <QRect>
 #include <QRegularExpression>
+#include <QScreen>
 #include <QSettings>
 #include <QStringList>
 #include <QTextStream>
@@ -218,8 +220,10 @@ static QString BoolArg(bool value) {
 	return value ? QStringLiteral("true") : QStringLiteral("false");
 }
 
-static QStringList CreateEmulatorArgs(const Configuration& info, QSize display) {
-	auto args = info.DisplayArgs(display);
+static QStringList CreateEmulatorArgs(const Configuration& info, QRect display) {
+	auto args = info.DisplayArgs(display.size());
+	args << "--display" << QString::number(display.x()) << QString::number(display.y())
+	     << QString::number(display.width()) << QString::number(display.height());
 	args << "--user-name" << info.user_name;
 	args << "--user-id" << QString::number(info.user_id);
 	if (!info.audio_input_device.isEmpty()) {
@@ -407,7 +411,11 @@ void MainDialog::RunInterpreter(QProcess* process, const Configuration& info) {
 	QFileInfo f(interpreter);
 	auto      dir = f.absoluteDir();
 
-	auto args = CreateEmulatorArgs(info, Configuration::NativeDisplaySize(screen()));
+	const auto* target_screen = screen();
+	const auto  display       = target_screen != nullptr
+	                                ? target_screen->geometry()
+	                                : QRect(QPoint {}, Configuration::NativeDisplaySize());
+	auto        args          = CreateEmulatorArgs(info, display);
 	if (args.isEmpty()) {
 		QMessageBox::critical(this, tr("Error"), tr("Invalid emulator configuration"));
 		QApplication::quit();

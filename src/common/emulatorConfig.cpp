@@ -36,6 +36,10 @@ uint32_t GetScreenHeight() {
 	return g_config->screen_height;
 }
 
+const std::optional<HostDisplay>& GetHostDisplay() {
+	return g_config->host_display;
+}
+
 const std::string& GetUserName() {
 	return g_config->user_name;
 }
